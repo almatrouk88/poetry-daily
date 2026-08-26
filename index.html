@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>ديوان اليوم</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="assets/style.css?v=1">
+<link rel="manifest" href="app.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7b2d55">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+</head>
+<body>
+<button class="tt" id="tt" aria-label="تبديل الوضع">◐</button>
+<div class="wrap">
+  <nav class="nav"><a class="home" href="index.html">📜 ديوان اليوم</a><span style="display:flex;gap:.45rem"><a href="search.html">🔍 بحث</a><a href="marks.html">🔖 علاماتي</a></span></nav>
+  <header class="mast"><p class="k">قصيدةٌ كلّ يوم</p><h1>ديوان اليوم</h1><p class="m">شاعرٌ وقصيدة · عبر كلّ العصور</p></header>
+  <div id="prog"></div>
+  <div id="resume"></div>
+  <a id="todayCard" class="today-card" href="#" style="display:none">
+    <span class="k">📜 قصيدة اليوم</span><div class="tt2" id="tdTitle"></div><div class="mt" id="tdMeta"></div></a>
+  <div class="sect-h">تصفّح العصور</div>
+  <select class="catsel" id="catSel"><option value="">اختر عصرًا…</option></select>
+  <ul class="archive-list" id="catList"></ul>
+  <p style="text-align:center;margin:1.4rem 0 0;display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+    <a class="soft-link" href="archive.html">📁 المقروءة</a>
+    <button id="cloudRestore" class="soft-link" style="cursor:pointer">☁↓ استعادة موضعي</button></p>
+</div>
+<script>
+var arNum=function(n){return String(n).replace(/[0-9]/g,function(d){return "٠١٢٣٤٥٦٧٨٩"[d]});};
+function readMap(){try{return JSON.parse(localStorage.getItem('poem-read')||'{}');}catch(e){return {};}}
+var READ=readMap();
+(function(){var last=null;try{last=JSON.parse(localStorage.getItem('poem-last')||'null');}catch(e){}
+ var b=document.getElementById('resume');
+ if(last&&last.file){b.innerHTML='<a class="resume-btn" href="'+last.file+'?pg='+(last.page||1)+'"><span class="rt">▶ متابعة القراءة</span><span class="rs">'+(last.title?String(last.title).replace('ديوان · ',''):'آخر موضع')+' · صفحة '+arNum(last.page||1)+'</span></a>';}})();
+Promise.all([fetch('index.json',{cache:'no-store'}).then(function(r){return r.json();}),fetch('manifest.json',{cache:'no-store'}).then(function(r){return r.json();})]).then(function(res){
+ var j=res[0],m=res[1],arts=j.articles||[],cats=j.categories||[];
+ var rc=arts.filter(function(a){return READ[a.id];}).length, pct=arts.length?Math.round(rc/arts.length*100):0;
+ document.getElementById('prog').innerHTML='<div class="bar"><span style="width:'+pct+'%"></span></div><p class="pl">قرأتَ '+arNum(rc)+' من '+arNum(arts.length)+'</p>';
+ var S=Date.UTC(2026,7,26),now=new Date();var t=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+ var n=Math.floor((t-S)/86400000)+1;if(n<1)n=1;if(n>m.total)n=m.total;var td=arts[n-1];
+ if(td){var c=document.getElementById('todayCard');c.href=td.file;c.style.display='';
+  document.getElementById('tdTitle').innerHTML=td.title+(READ[td.id]?'<span class="readmark">✓</span>':'');
+  document.getElementById('tdMeta').textContent=td.poet+' · '+td.category;}
+ var sel=document.getElementById('catSel'),list=document.getElementById('catList');
+ cats.forEach(function(cc){var o=document.createElement('option');o.value=cc;o.textContent=cc;sel.appendChild(o);});
+ sel.addEventListener('change',function(){list.innerHTML='';var cv=this.value;if(!cv)return;
+  arts.filter(function(a){return a.category===cv;}).forEach(function(a){var li=document.createElement('li');var lnk=document.createElement('a');
+   lnk.href=a.file;if(READ[a.id])lnk.className='read';
+   lnk.innerHTML='<span class="d">'+a.title+(READ[a.id]?'<span class="readmark">✓</span>':'')+'</span><span class="t">'+a.poet+' · '+a.theme+'</span>';
+   li.appendChild(lnk);list.appendChild(li);});});
+});
+document.getElementById('cloudRestore').addEventListener('click',function(){var b=this;b.textContent='☁ جارٍ…';
+ fetch('https://kvdb.io/Hj8v3hbdFx6wBP8hrRyaUk/poem_pos',{cache:'no-store'}).then(function(r){return r.json();}).then(function(p){
+  if(p&&p.file){location.href='/poetry-daily/'+p.file+'?pg='+(p.page||1);}else{b.textContent='لا يوجد موضع محفوظ';}}).catch(function(){b.textContent='تعذّر الاتصال';});});
+document.getElementById('tt').addEventListener('click',function(){var r=document.documentElement,t=r.getAttribute('data-theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.setAttribute('data-theme',d?'light':'dark');localStorage.setItem('risala-theme',d?'light':'dark');});
+</script></body></html>

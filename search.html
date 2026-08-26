@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>ديوان · البحث</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="assets/style.css?v=1">
+<link rel="manifest" href="app.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7b2d55">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+</head>
+<body><button class="tt" id="tt" aria-label="تبديل الوضع">◐</button>
+<div class="wrap"><nav class="nav"><a class="home" href="index.html">📜 ديوان اليوم</a><span style="display:flex;gap:.45rem"><a href="search.html">🔍 بحث</a><a href="marks.html">🔖 علاماتي</a></span></nav>
+  <header class="mast"><p class="k">ديوان اليوم</p><h1>البحث</h1><p class="m">بالشاعر أو العنوان أو العصر</p></header>
+  <input id="q" type="search" placeholder="مثال: المتنبّي، رثاء، أندلسي…" autocomplete="off" style="width:100%;font-family:var(--body);font-size:1.1rem;padding:.6rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);margin:0 0 1rem">
+  <p id="count" style="color:var(--faint);font-size:.9rem"></p>
+  <ul class="archive-list" id="res"></ul></div>
+<script>
+var arNum=function(n){return String(n).replace(/[0-9]/g,function(d){return "٠١٢٣٤٥٦٧٨٩"[d]});};
+var norm=function(s){return (s||'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[ً-ْ]/g,'').toLowerCase().trim();};
+function readMap(){try{return JSON.parse(localStorage.getItem('poem-read')||'{}');}catch(e){return {};}}
+var R=readMap(),DATA=[];
+fetch('index.json',{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){DATA=j.articles||[];run();});
+function run(){var q=norm(document.getElementById('q').value);
+ var res=DATA.filter(function(x){return !q||norm(x.title).indexOf(q)>=0||norm(x.poet).indexOf(q)>=0||norm(x.category).indexOf(q)>=0||norm(x.theme).indexOf(q)>=0;});
+ var ul=document.getElementById('res');ul.innerHTML='';
+ document.getElementById('count').textContent=res.length?('النتائج: '+arNum(res.length)):'لا نتائج';
+ res.forEach(function(x){var li=document.createElement('li');var a=document.createElement('a');a.href=x.file;if(R[x.id])a.className='read';
+  a.innerHTML='<span class="d">'+x.title+(R[x.id]?'<span class="readmark">✓</span>':'')+'</span><span class="t">'+x.poet+' · '+x.category+' · '+x.theme+'</span>';
+  li.appendChild(a);ul.appendChild(li);});}
+document.getElementById('q').addEventListener('input',run);
+document.getElementById('tt').addEventListener('click',function(){var r=document.documentElement,t=r.getAttribute('data-theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.setAttribute('data-theme',d?'light':'dark');localStorage.setItem('risala-theme',d?'light':'dark');});
+</script></body></html>

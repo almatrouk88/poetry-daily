@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>ديوان · المقروءة</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="assets/style.css?v=1">
+<link rel="manifest" href="app.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7b2d55">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+</head>
+<body><button class="tt" id="tt" aria-label="تبديل الوضع">◐</button>
+<div class="wrap"><nav class="nav"><a class="home" href="index.html">📜 ديوان اليوم</a><span style="display:flex;gap:.45rem"><a href="search.html">🔍 بحث</a><a href="marks.html">🔖 علاماتي</a></span></nav>
+  <header class="mast"><p class="k">ديوان اليوم</p><h1>المقروءة</h1><p class="m">القصائد التي أنهيتها ✓</p></header>
+  <ul class="archive-list" id="list"><li>…</li></ul></div>
+<script>
+var arNum=function(n){return String(n).replace(/[0-9]/g,function(d){return "٠١٢٣٤٥٦٧٨٩"[d]});};
+function readMap(){try{return JSON.parse(localStorage.getItem('poem-read')||'{}');}catch(e){return {};}}
+var R=readMap();
+function fmt(ts){try{var d=new Date(ts);return arNum(d.getFullYear())+'-'+arNum(('0'+(d.getMonth()+1)).slice(-2))+'-'+arNum(('0'+d.getDate()).slice(-2));}catch(e){return '';}}
+fetch('index.json',{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
+ var arts=(j.articles||[]).filter(function(a){return R[a.id];}).sort(function(a,b){return R[b.id]-R[a.id];});
+ var ul=document.getElementById('list');ul.innerHTML='';
+ if(!arts.length){ul.innerHTML='<p style="color:var(--faint);text-align:center;margin:2rem 0">لا قصائد مقروءة بعد — أنهِ قصيدةً لتظهر هنا ✓</p>';return;}
+ arts.forEach(function(a){var li=document.createElement('li');var lnk=document.createElement('a');lnk.href=a.file;
+  lnk.innerHTML='<span class="d">'+a.title+'<span class="readmark">✓</span></span><span class="t">'+a.poet+' · '+a.category+' · '+fmt(R[a.id])+'</span>';
+  li.appendChild(lnk);ul.appendChild(li);});});
+document.getElementById('tt').addEventListener('click',function(){var r=document.documentElement,t=r.getAttribute('data-theme');var d=t?t==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.setAttribute('data-theme',d?'light':'dark');localStorage.setItem('risala-theme',d?'light':'dark');});
+</script></body></html>
