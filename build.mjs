@@ -1,6 +1,6 @@
 import fs from "fs";
 const base="/Users/mac/poetry-daily";
-const V="3";
+const V="4";
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const arNum=n=>String(n).replace(/[0-9]/g,d=>"٠١٢٣٤٥٦٧٨٩"[d]);
 const pad=n=>String(n).padStart(3,"0");
@@ -101,6 +101,7 @@ fs.writeFileSync(`${base}/index.html`, `${HEAD("ديوان اليوم","")}
   <select class="catsel" id="catSel"><option value="">اختر عصرًا…</option></select>
   <ul class="archive-list" id="catList"></ul>
   <p style="text-align:center;margin:1.4rem 0 0;display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+    <button id="nextUnread" class="soft-link" style="cursor:pointer">▶ التالي غير المقروء</button>
     <a class="soft-link" href="archive.html">📁 المقروءة</a>
     <button id="cloudRestore" class="soft-link" style="cursor:pointer">☁↓ استعادة موضعي</button></p>
 </div>
@@ -115,6 +116,8 @@ Promise.all([fetch('index.json',{cache:'no-store'}).then(function(r){return r.js
  var j=res[0],m=res[1],arts=j.articles||[],cats=j.categories||[];
  var rc=arts.filter(function(a){return READ[a.id];}).length, pct=arts.length?Math.round(rc/arts.length*100):0;
  document.getElementById('prog').innerHTML='<div class="bar"><span style="width:'+pct+'%"></span></div><p class="pl">قرأتَ '+arNum(rc)+' من '+arNum(arts.length)+'</p>';
+ var _nu=arts.filter(function(a){return !READ[a.id];})[0], _nb=document.getElementById('nextUnread');
+ if(_nb){ if(_nu){ _nb.addEventListener('click',function(){location.href=_nu.file;}); } else { _nb.textContent='✓ أنهيتَ الكلّ'; } }
  var S=Date.UTC(2026,7,26),now=new Date();var t=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
  var n=Math.floor((t-S)/86400000)+1;if(n<1)n=1;if(n>m.total)n=m.total;var td=arts[n-1];
  if(td){var c=document.getElementById('todayCard');c.href=td.file;c.style.display='';
@@ -185,7 +188,7 @@ fs.writeFileSync(`${base}/marks.html`, `${HEAD("ديوان · علاماتي",""
 <body><button class="tt" id="tt" aria-label="تبديل الوضع">◐</button>
 <div class="wrap">${NAV}
   <header class="mast"><p class="k">ديوان اليوم</p><h1>علاماتي</h1><p class="m">علاماتك وتظليلاتك</p></header>
-  <div id="bm"></div><div id="hl"></div></div>
+  <div id="bm"></div><div id="hl"></div><div id="nt"></div></div>
 <script>
 var arNum=function(n){return String(n).replace(/[0-9]/g,function(d){return "٠١٢٣٤٥٦٧٨٩"[d]});};
 function load(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return [];}}
@@ -198,7 +201,13 @@ function render(){var bm=load('poem-bookmarks'),hl=load('poem-highlights');
  hs.innerHTML='<div class="sect-h">التظليلات ('+arNum(hl.length)+')</div>';
  if(!hl.length)hs.innerHTML+='<p style="color:var(--faint);text-align:center">لا تظليلات — ظلّل نصًّا أثناء القراءة.</p>';
  hl.slice().reverse().forEach(function(h){var box=document.createElement('div');box.style.margin='0 0 1rem';
-  box.innerHTML='<p style="font-size:1.05rem;line-height:1.8">«'+h.text+'»</p><div style="font-size:.85rem"><a href="'+h.file+'" style="color:var(--ink)">↩ اذهب للموضع</a></div>';hs.appendChild(box);});}
+  box.innerHTML='<p style="font-size:1.05rem;line-height:1.8">«'+h.text+'»</p><div style="font-size:.85rem"><a href="'+h.file+'" style="color:var(--ink)">↩ اذهب للموضع</a></div>';hs.appendChild(box);});
+ var nt={};try{nt=JSON.parse(localStorage.getItem('poem-notes')||'{}');}catch(e){}
+ var nk=Object.keys(nt), ne=document.getElementById('nt');
+ ne.innerHTML='<div class="sect-h">ملاحظاتي ('+arNum(nk.length)+')</div>';
+ if(!nk.length)ne.innerHTML+='<p style="color:var(--faint);text-align:center">لا ملاحظات — اكتب واحدة بزر 📝 أثناء القراءة.</p>';
+ nk.forEach(function(k){var o=nt[k]||{};var d=document.createElement('div');d.style.margin='0 0 1rem';
+  d.innerHTML='<p style="line-height:1.8">'+(o.t||'')+'</p><div style="font-size:.85rem"><a href="'+k+'" style="color:var(--ink)">↩ '+((o.title||'').replace('ديوان · ',''))+'</a></div>';ne.appendChild(d);});}
 render();${THEMEJS}
 </script></body></html>`);
 
