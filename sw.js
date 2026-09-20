@@ -1,6 +1,15 @@
-const CACHE='poem-v4';
-const CORE=["./","index.html","archive.html","search.html","marks.html","manifest.json","index.json","app.webmanifest","assets/style.css?v=4","assets/footnotes.js?v=4","assets/fonts.css","assets/icon.svg","assets/fonts/J7aRnpd8CGxBHpUgtLMA7w.woff2","assets/fonts/J7aRnpd8CGxBHpUrtLMA7w.woff2","assets/fonts/J7aRnpd8CGxBHpUutLM.woff2","assets/fonts/J7acnpd8CGxBHp2VkaY6zp5yGw.woff2","assets/fonts/J7acnpd8CGxBHp2VkaY_zp4.woff2","assets/fonts/J7acnpd8CGxBHp2VkaYxzp5yGw.woff2","days/day-001.html","days/day-002.html","days/day-003.html","days/day-004.html","days/day-005.html","days/day-006.html","days/day-007.html","days/day-008.html","days/day-009.html","days/day-010.html","days/day-011.html","days/day-012.html","days/day-013.html","days/day-014.html","days/day-015.html"];
+const CACHE='poem-v5';
+const CORE=["./","index.html","archive.html","poet.html","search.html","marks.html","manifest.json","index.json","app.webmanifest","assets/style.css?v=5","assets/footnotes.js?v=5","assets/fonts.css","assets/icon.svg","assets/fonts/J7aRnpd8CGxBHpUgtLMA7w.woff2","assets/fonts/J7aRnpd8CGxBHpUrtLMA7w.woff2","assets/fonts/J7aRnpd8CGxBHpUutLM.woff2","assets/fonts/J7acnpd8CGxBHp2VkaY6zp5yGw.woff2","assets/fonts/J7acnpd8CGxBHp2VkaY_zp4.woff2","assets/fonts/J7acnpd8CGxBHp2VkaYxzp5yGw.woff2","days/day-001.html","days/day-002.html","days/day-003.html","days/day-004.html","days/day-005.html","days/day-006.html","days/day-007.html","days/day-008.html","days/day-009.html","days/day-010.html","days/day-011.html","days/day-012.html","days/day-013.html","days/day-014.html","days/day-015.html"];
+// ملفات البيانات والصفحات: شبكة أولًا (طازجة دومًا)، تُحفظ نسخة احتياطية للعمل دون إنترنت فقط
+const NET_FIRST=/(^|\/)(index\.json|manifest\.json|[^/]+\.html)(\?|$)/;
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CORE.map(u=>c.add(u)))));});
 self.addEventListener('activate',e=>{e.waitUntil((async()=>{const ks=await caches.keys();await Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim();})());});
-self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const url=new URL(req.url);if(url.origin!==location.origin)return;
- e.respondWith(caches.open(CACHE).then(c=>c.match(req).then(hit=>{const net=fetch(req).then(res=>{if(res&&res.status===200)c.put(req,res.clone());return res;}).catch(()=>hit);return hit||net;})));});
+self.addEventListener('fetch',e=>{
+  const req=e.request; if(req.method!=='GET') return;
+  const url=new URL(req.url); if(url.origin!==location.origin) return;
+  if(NET_FIRST.test(url.pathname+url.search)){
+    e.respondWith(caches.open(CACHE).then(c=>fetch(req).then(res=>{ if(res&&res.status===200) c.put(req,res.clone()); return res; }).catch(()=>c.match(req))));
+    return;
+  }
+  e.respondWith(caches.open(CACHE).then(c=>c.match(req).then(hit=>{const net=fetch(req).then(res=>{if(res&&res.status===200)c.put(req,res.clone());return res;}).catch(()=>hit);return hit||net;})));
+});

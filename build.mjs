@@ -1,6 +1,6 @@
 import fs from "fs";
 const base=process.cwd();
-const V="4";
+const V="5";
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const arNum=n=>String(n).replace(/[0-9]/g,d=>"٠١٢٣٤٥٦٧٨٩"[d]);
 const pad=n=>String(n).padStart(3,"0");
@@ -84,7 +84,7 @@ const idx={ note:"فهرس القصائد", categories:[...new Set(entries.map(e
 fs.writeFileSync(`${base}/index.json`, JSON.stringify(idx,null,2));
 fs.writeFileSync(`${base}/manifest.json`, JSON.stringify({start:"2026-08-26",total},null,2));
 
-const NAV=`<nav class="nav"><a class="home" href="index.html">📜 ديوان اليوم</a><span style="display:flex;gap:.45rem"><a href="search.html">🔍 بحث</a><a href="marks.html">🔖 علاماتي</a></span></nav>`;
+const NAV=`<nav class="nav"><a class="home" href="index.html">📜 ديوان اليوم</a><span style="display:flex;gap:.45rem"><a href="poet.html">✒ الشعراء</a><a href="search.html">🔍 بحث</a><a href="marks.html">🔖 علاماتي</a></span></nav>`;
 
 // الرئيسية
 fs.writeFileSync(`${base}/index.html`, `${HEAD("ديوان اليوم","")}
@@ -158,6 +158,43 @@ fetch('index.json',{cache:'no-store'}).then(function(r){return r.json();}).then(
 ${THEMEJS}
 </script></body></html>`);
 
+// بحسب الشاعر
+fs.writeFileSync(`${base}/poet.html`, `${HEAD("ديوان · بحسب الشاعر","")}
+<body><button class="tt" id="tt" aria-label="تبديل الوضع">◐</button>
+<div class="wrap">${NAV}
+  <header class="mast"><p class="k">ديوان اليوم</p><h1>بحسب الشاعر</h1><p class="m">تنقّل بين قصائد الشاعر نفسه، لا عصره فقط</p></header>
+  <select class="catsel" id="poetSel"><option value="">اختر شاعرًا…</option></select>
+  <div id="poetMeta" class="m" style="text-align:center;margin:.5rem 0 0"></div>
+  <ul class="archive-list" id="list"></ul></div>
+<script>
+var arNum=function(n){return String(n).replace(/[0-9]/g,function(d){return "٠١٢٣٤٥٦٧٨٩"[d]});};
+function readMap(){try{return JSON.parse(localStorage.getItem('poem-read')||'{}');}catch(e){return {};}}
+var READ=readMap();
+var q=new URLSearchParams(location.search), qp=q.get('poet');
+fetch('index.json',{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
+  var arts=j.articles||[]; var poets=[]; var seen={};
+  arts.forEach(function(a){ if(!seen[a.poet]){ seen[a.poet]=true; poets.push(a.poet); } });
+  var sel=document.getElementById('poetSel');
+  poets.forEach(function(p){ var o=document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o); });
+  function render(poet){
+    var list=document.getElementById('list'), meta=document.getElementById('poetMeta');
+    list.innerHTML=''; meta.textContent=''; if(!poet) return;
+    var mine=arts.filter(function(a){return a.poet===poet;}).sort(function(a,b){return a.day-b.day;});
+    var rc=mine.filter(function(a){return READ[a.id];}).length;
+    meta.textContent=mine[0].category+' · أنهيتَ '+arNum(rc)+' من '+arNum(mine.length);
+    mine.forEach(function(a,i){
+      var li=document.createElement('li'); var lnk=document.createElement('a'); lnk.href=a.file;
+      if(READ[a.id]) lnk.className='read';
+      lnk.innerHTML='<span class="d">'+arNum(i+1)+'. '+a.title+(READ[a.id]?'<span class="readmark">✓</span>':'')+'</span><span class="t">'+a.theme+'</span>';
+      li.appendChild(lnk); list.appendChild(li);
+    });
+  }
+  sel.addEventListener('change',function(){ render(this.value); history.replaceState(null,'','poet.html'+(this.value?'?poet='+encodeURIComponent(this.value):'')); });
+  if(qp && seen[qp]){ sel.value=qp; render(qp); }
+});
+${THEMEJS}
+</script></body></html>`);
+
 // البحث
 fs.writeFileSync(`${base}/search.html`, `${HEAD("ديوان · البحث","")}
 <body><button class="tt" id="tt" aria-label="تبديل الوضع">◐</button>
@@ -213,16 +250,25 @@ render();${THEMEJS}
 
 // ---- Service Worker للقراءة دون إنترنت ----
 const fonts=fs.readdirSync(`${base}/assets/fonts`).filter(f=>f.endsWith(".woff2")).map(f=>`assets/fonts/${f}`);
-const CORE=["./","index.html","archive.html","search.html","marks.html",
+const CORE=["./","index.html","archive.html","poet.html","search.html","marks.html",
   "manifest.json","index.json","app.webmanifest",
   `assets/style.css?v=${V}`,`assets/footnotes.js?v=${V}`,"assets/fonts.css","assets/icon.svg",
   ...fonts, ...entries.map(e=>e.file)];
 fs.writeFileSync(`${base}/sw.js`, `const CACHE='poem-v${V}';
 const CORE=${JSON.stringify(CORE)};
+// ملفات البيانات والصفحات: شبكة أولًا (طازجة دومًا)، تُحفظ نسخة احتياطية للعمل دون إنترنت فقط
+const NET_FIRST=/(^|\\/)(index\\.json|manifest\\.json|[^/]+\\.html)(\\?|$)/;
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CORE.map(u=>c.add(u)))));});
 self.addEventListener('activate',e=>{e.waitUntil((async()=>{const ks=await caches.keys();await Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim();})());});
-self.addEventListener('fetch',e=>{const req=e.request;if(req.method!=='GET')return;const url=new URL(req.url);if(url.origin!==location.origin)return;
- e.respondWith(caches.open(CACHE).then(c=>c.match(req).then(hit=>{const net=fetch(req).then(res=>{if(res&&res.status===200)c.put(req,res.clone());return res;}).catch(()=>hit);return hit||net;})));});
+self.addEventListener('fetch',e=>{
+  const req=e.request; if(req.method!=='GET') return;
+  const url=new URL(req.url); if(url.origin!==location.origin) return;
+  if(NET_FIRST.test(url.pathname+url.search)){
+    e.respondWith(caches.open(CACHE).then(c=>fetch(req).then(res=>{ if(res&&res.status===200) c.put(req,res.clone()); return res; }).catch(()=>c.match(req))));
+    return;
+  }
+  e.respondWith(caches.open(CACHE).then(c=>c.match(req).then(hit=>{const net=fetch(req).then(res=>{if(res&&res.status===200)c.put(req,res.clone());return res;}).catch(()=>hit);return hit||net;})));
+});
 `);
 console.log("✅ بُنيت", total, "قصيدة + كل الصفحات + sw.js");
 entries.forEach(e=>console.log("  اليوم",e.day,"|",e.era,"|",e.poet,"—",(e.poem_title||"")));
